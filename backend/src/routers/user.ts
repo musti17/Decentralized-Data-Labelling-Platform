@@ -1,13 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "..";
+import { authMiddleware } from "../middleware";
+import { createTaskInput } from "../types";
 
 const router = Router();
 
-const JWT_SECRET = "mustafa1232";
-
 const prismaClient = new PrismaClient();
 
+const DEFAULT_TITLE = "Select the number of cats";
 //signin with a wallet
 //signing a message
 router.post("/signin", async(req,res) =>{
@@ -46,5 +48,47 @@ router.post("/signin", async(req,res) =>{
         })
     } 
 });
+
+
+router.post("/task",authMiddleware,async (req,res) => {
+    //@ts-ignore
+    const userId = req.userId;
+    //validate the inputs from the user
+    const body = req.body;
+    
+    const parseData = createTaskInput.safeParse(body);
+
+    if(!parseData.success){
+        return res.status(411).json({
+            message:"You've sent the wrong inputs"
+        })
+    }
+
+    //parse the signature here to ensure the person has paid $50 or smth
+    let response = await prismaClient.$transaction(async tx => {
+        const response = await tx.task.create({
+            data: {
+                title:parseData.data.title ?? DEFAULT_TITLE,
+                amount:"1",
+                signature:parseData.data.signature,
+                user_id:userId
+            }
+        })
+
+        await tx.option.createMany({
+            data: parseData.data.options.map(x => ({
+                image_url : x.imageUrl,
+                task_id : response.id
+            }))
+        })
+
+        return response;
+    })
+
+    res.json({
+        id: response.id
+    })
+
+})
 
 export default router;

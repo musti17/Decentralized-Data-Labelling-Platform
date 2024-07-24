@@ -3,6 +3,10 @@ import userRouter from "./routers/user"
 import workerRouter from "./routers/worker"
 const app = express();
 
+app.use(express.json());
+
+export const JWT_SECRET = "mustafa1232";
+
 app.use("/v1/user",userRouter);
 app.use("/v1/worker",workerRouter);
 

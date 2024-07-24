@@ -15,9 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const express_1 = require("express");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const __1 = require("..");
+const middleware_1 = require("../middleware");
+const types_1 = require("../types");
 const router = (0, express_1.Router)();
-const JWT_SECRET = "mustafa1232";
 const prismaClient = new client_1.PrismaClient();
+const DEFAULT_TITLE = "Select the number of cats";
 //signin with a wallet
 //signing a message
 router.post("/signin", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -31,7 +34,7 @@ router.post("/signin", (req, res) => __awaiter(void 0, void 0, void 0, function*
     if (existingUser) {
         const token = jsonwebtoken_1.default.sign({
             userId: existingUser.id
-        }, JWT_SECRET);
+        }, __1.JWT_SECRET);
         res.json({
             token
         });
@@ -45,10 +48,44 @@ router.post("/signin", (req, res) => __awaiter(void 0, void 0, void 0, function*
         });
         const token = jsonwebtoken_1.default.sign({
             userId: newUser.id
-        }, JWT_SECRET);
+        }, __1.JWT_SECRET);
         res.json({
             token
         });
     }
+}));
+router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    //validate the inputs from the user
+    const body = req.body;
+    const parseData = types_1.createTaskInput.safeParse(body);
+    if (!parseData.success) {
+        return res.status(411).json({
+            message: "You've sent the wrong inputs"
+        });
+    }
+    //parse the signature here to ensure the person has paid $50 or smth
+    let response = yield prismaClient.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
+        const response = yield tx.task.create({
+            data: {
+                title: (_a = parseData.data.title) !== null && _a !== void 0 ? _a : DEFAULT_TITLE,
+                amount: "1",
+                signature: parseData.data.signature,
+                user_id: userId
+            }
+        });
+        yield tx.option.createMany({
+            data: parseData.data.options.map(x => ({
+                image_url: x.imageUrl,
+                task_id: response.id
+            }))
+        });
+        return response;
+    }));
+    res.json({
+        id: response.id
+    });
 }));
 exports.default = router;
