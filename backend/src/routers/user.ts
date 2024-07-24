@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "..";
 import { authMiddleware } from "../middleware";
 import { createTaskInput } from "../types";
+import { Result } from "@prisma/client/runtime/library";
 
 const router = Router();
 
@@ -48,6 +49,71 @@ router.post("/signin", async(req,res) =>{
         })
     } 
 });
+
+router.get("/task",authMiddleware,async(req,res) => {
+    //@ts-ignore
+    const taskId : string = req.query.taskId;
+
+    //@ts-ignore
+    const userId : string = req.userId;
+
+    console.log({
+        user_id:Number(userId),
+        taskId:Number(taskId)
+    })
+
+    //finding the task and fetching all the options for it as well
+    const taskDetails = await prismaClient.task.findFirst({
+        where:{
+            id:Number(taskId),
+            user_id:Number(userId)
+        },
+        include:{
+            options:true
+        }
+
+    })
+
+    if(!taskDetails){
+        return res.status(411).json({
+            message:"This task is not available"
+        })
+    }
+
+    const responses = await prismaClient.submission.findMany({
+        where:{
+            task_id:Number(taskId)
+        },
+        include:{
+            option:true
+        }
+    });
+
+    const result: Record<string, {
+        count:number;
+        option: {
+            imageUrl:string
+        }
+    }> = {};
+
+    taskDetails.options.forEach(option => {
+        result[option.id] = {
+            count : 1,
+            option: {
+                imageUrl:option.image_url
+            }
+        }
+    })
+
+    responses.forEach(r => {
+        result[r.option_id].count++;
+    });
+
+    res.json({
+        result
+    })
+
+})
 
 
 router.post("/task",authMiddleware,async (req,res) => {

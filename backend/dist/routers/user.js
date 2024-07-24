@@ -54,6 +54,54 @@ router.post("/signin", (req, res) => __awaiter(void 0, void 0, void 0, function*
         });
     }
 }));
+router.get("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const taskId = req.query.taskId;
+    //@ts-ignore
+    const userId = req.userId;
+    console.log({
+        user_id: Number(userId),
+        taskId: Number(taskId)
+    });
+    //finding the task and fetching all the options for it as well
+    const taskDetails = yield prismaClient.task.findFirst({
+        where: {
+            id: Number(taskId),
+            user_id: Number(userId)
+        },
+        include: {
+            options: true
+        }
+    });
+    if (!taskDetails) {
+        return res.status(411).json({
+            message: "This task is not available"
+        });
+    }
+    const responses = yield prismaClient.submission.findMany({
+        where: {
+            task_id: Number(taskId)
+        },
+        include: {
+            option: true
+        }
+    });
+    const result = {};
+    taskDetails.options.forEach(option => {
+        result[option.id] = {
+            count: 1,
+            option: {
+                imageUrl: option.image_url
+            }
+        };
+    });
+    responses.forEach(r => {
+        result[r.option_id].count++;
+    });
+    res.json({
+        result
+    });
+}));
 router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
