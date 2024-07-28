@@ -18,6 +18,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const __1 = require("..");
 const middleware_1 = require("../middleware");
 const types_1 = require("../types");
+const config_1 = require("../config");
 const router = (0, express_1.Router)();
 const prismaClient = new client_1.PrismaClient();
 const DEFAULT_TITLE = "Select the number of cats";
@@ -119,7 +120,7 @@ router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0
         const response = yield tx.task.create({
             data: {
                 title: (_a = parseData.data.title) !== null && _a !== void 0 ? _a : DEFAULT_TITLE,
-                amount: 1,
+                amount: 1 * config_1.TOTAL_DECIMALS,
                 signature: parseData.data.signature,
                 user_id: userId
             }

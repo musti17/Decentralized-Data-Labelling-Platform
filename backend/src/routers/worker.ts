@@ -13,6 +13,23 @@ const prismaClient = new PrismaClient();
 
 const TOTAL_SUBMISSIONS = 100;
 
+router.get("/balance",workerMiddleware,async(req,res) =>{
+    //@ts-ignore
+    const userId:string = req.userId;
+
+    const worker = await prismaClient.worker.findFirst({
+        where:{
+            id:Number(userId)
+        }
+    })
+
+    res.json({
+        pending_amount:worker?.pending_amount,
+        locked_amount:worker?.locked_amount
+    })
+
+})
+
 router.post("/submission",workerMiddleware,async(req,res) => { 
     //@ts-ignore
     const userId = req.userId;
@@ -29,13 +46,13 @@ router.post("/submission",workerMiddleware,async(req,res) => {
 
         const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
 
-       const submission = await prismaClient.$transaction(async tx =>{
+       const submission = await prismaClient.$transaction(async tx => {
         const submission = await tx.submission.create({
             data:{
                 option_id:Number(parsedBody.data.selection),
                 worker_id:userId,
                 task_id:Number(parsedBody.data.taskId),
-                amount:Number(amount)
+                amount: Number(amount)
             }
         })
 
@@ -65,7 +82,6 @@ router.post("/submission",workerMiddleware,async(req,res) => {
         })
     }
 })
-
 
 router.get("/nextTask",workerMiddleware,async(req,res) => {
     //@ts-ignore

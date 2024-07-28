@@ -22,6 +22,19 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const router = (0, express_1.Router)();
 const prismaClient = new client_1.PrismaClient();
 const TOTAL_SUBMISSIONS = 100;
+router.get("/balance", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    const worker = yield prismaClient.worker.findFirst({
+        where: {
+            id: Number(userId)
+        }
+    });
+    res.json({
+        pending_amount: worker === null || worker === void 0 ? void 0 : worker.pending_amount,
+        locked_amount: worker === null || worker === void 0 ? void 0 : worker.locked_amount
+    });
+}));
 router.post("/submission", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
